@@ -40,10 +40,13 @@ This service automatically starts and manages the Prometheus + Grafana + Alertma
 ## REST API Endpoints
 
 ### Get Status
+
 ```bash
 curl http://localhost:8084/api/monitoring/status
 ```
+
 Response:
+
 ```json
 {
   "managed": true,
@@ -54,20 +57,25 @@ Response:
 ```
 
 ### Health Check
+
 ```bash
 curl http://localhost:8084/api/monitoring/health
 ```
 
 ### Restart Stack
+
 ```bash
 curl -X POST http://localhost:8084/api/monitoring/restart
 ```
 
 ### Get Monitoring Links
+
 ```bash
 curl http://localhost:8084/api/monitoring/links
 ```
+
 Response:
+
 ```json
 {
   "grafana": "http://localhost:3000 (admin/${GRAFANA_ADMIN_PASSWORD})",
@@ -96,16 +104,19 @@ monitoring:
 ## Running the Service
 
 ### Build
+
 ```bash
 mvn clean package -pl monitoring-orchestrator-service -am
 ```
 
 ### Run
+
 ```bash
 java -jar monitoring-orchestrator-service/target/monitoring-orchestrator-service-0.0.1-SNAPSHOT.jar
 ```
 
 Or use the startup script:
+
 ```bash
 ./start-monitoring-orchestrator.sh
 ```
@@ -153,6 +164,7 @@ Registered at `/actuator/health` with custom `monitoringStack` component:
 ## Logging
 
 All Docker Compose output is logged at INFO level:
+
 ```
 2025-12-20 14:20:00 INFO  DockerComposeLifecycleManager : Starting monitoring stack lifecycle manager
 2025-12-20 14:20:00 INFO  DockerComposeLifecycleManager : Found docker-compose file at: /Users/.../docker-compose.monitoring.yaml
@@ -183,16 +195,19 @@ When all services are running, the monitoring stack will automatically scrape me
 ## Troubleshooting
 
 ### Service won't start
+
 - Check Docker is running: `docker ps`
 - Verify docker-compose.monitoring.yaml exists
 - Check file path in application.yaml
 
 ### Monitoring stack not coming up
+
 - Check logs: `docker compose -f docker-compose.monitoring.yaml logs`
 - Increase startup timeout: `monitoring.docker-compose.startup-timeout-seconds: 120`
 - Manually test: `docker compose -f docker-compose.monitoring.yaml up -d`
 
 ### Port conflicts
+
 - Ensure ports 9090, 3000, 9093, 9100 are available
 - Check with: `lsof -i :9090,3000,9093,9100`
 

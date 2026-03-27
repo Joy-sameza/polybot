@@ -3,6 +3,7 @@
 Open-source Polymarket trading infrastructure and strategy reverse-engineering toolkit.
 
 Polybot is a multi-service system for:
+
 - automated execution (paper and live modes)
 - strategy runtime and market making
 - market/user trade ingestion into ClickHouse
@@ -14,8 +15,8 @@ Polybot is a multi-service system for:
 
 Polybot is the execution and market-data foundation for **AWARE**, the next product layer (trader intelligence, PSI indices, fund mirroring, API/UI).
 
-- Polybot repo: https://github.com/ent0n29/polybot
-- AWARE repo: https://github.com/ent0n29/aware
+- Polybot repo: <https://github.com/ent0n29/polybot>
+- AWARE repo: <https://github.com/ent0n29/aware>
 
 ## What You Get
 
@@ -141,6 +142,7 @@ Get-Content -Wait logs\infrastructure-orchestrator-service.log
 Key variables are documented in `.env.example`.
 
 Most relevant:
+
 - `POLYMARKET_TARGET_USER` for strategy research workflows
 - `POLYMARKET_PRIVATE_KEY`, `POLYMARKET_API_KEY`, `POLYMARKET_API_SECRET`, `POLYMARKET_API_PASSPHRASE` for live trading
 - `KAFKA_BOOTSTRAP_SERVERS`, `ANALYTICS_DB_URL`, `CLICKHOUSE_*` for data pipeline
@@ -157,6 +159,7 @@ See `docs/EXAMPLE_STRATEGY_SPEC.md` for implementation details.
 ## Research Workflow
 
 The `research/` directory contains scripts for:
+
 - snapshot extraction and reporting
 - replication and similarity scoring
 - backtesting and calibration
