@@ -19,17 +19,17 @@ Polybot is the execution and market-data foundation for **AWARE**, the next prod
 
 ## What You Get
 
-- Java 21 microservices for execution, strategy, ingestion, analytics
+- TypeScript/NestJS microservices for execution, strategy, ingestion, analytics
+- Shared `@polybot/core` library with Polymarket CLOB/Gamma/Data API clients, EIP-712 and HMAC signing, order building, market parsing
 - ClickHouse + Redpanda event pipeline
 - Monitoring stack (Grafana, Prometheus, Alertmanager)
 - Research toolkit in `research/` for snapshots, deep analysis, and replication metrics
 
-## Quick Start (Recommended)
+## Quick Start
 
 ### Prerequisites
 
-- Amazon Corretto 21 (recommended) or any Java 21+
-- Maven 3.8+
+- Node.js 20+ and npm 9+
 - Docker Engine/Desktop with Compose plugin
 - Python 3.11+ (for research scripts)
 
@@ -40,69 +40,85 @@ git clone https://github.com/ent0n29/polybot.git
 cd polybot
 ```
 
-### 2. Optional Environment Setup
+### 2. Install Dependencies
 
 ```bash
-cp .env.example .env
-set -a; source .env; set +a
+npm install
 ```
 
-Note: Spring Boot does not auto-load `.env`; export variables in your shell when needed.
+### 3. Optional Environment Setup
 
-### 3. Start Everything
+```powershell
+Copy-Item .env.example .env
+# Edit .env with your credentials
+```
+
+### 4. Build
 
 ```bash
-./start-all-services.sh
+npm run build
 ```
 
-This script builds missing artifacts, starts infrastructure stacks, then starts all services with `develop` profile.
+### 5. Start Everything
 
-### 4. Verify
+```powershell
+.\Start-AllServices.ps1
+```
+
+Or start individual services:
 
 ```bash
-curl http://localhost:8080/actuator/health
-curl http://localhost:8081/actuator/health
-curl http://localhost:8082/actuator/health
-curl http://localhost:8083/actuator/health
-curl http://localhost:8084/actuator/health
-curl http://localhost:8123 --data "SELECT 1"
+npm run start:executor    # port 8080
+npm run start:strategy    # port 8081
+npm run start:analytics   # port 8082
+npm run start:ingestor    # port 8083
+npm run start:infra       # port 8084
 ```
 
-### 5. Stop
+### 6. Verify
 
 ```bash
-./stop-all-services.sh
+curl http://localhost:8080/api/polymarket/health
+curl http://localhost:8081/api/strategy/status
+curl http://localhost:8082/api/analytics/status
+curl http://localhost:8083/api/ingestor/status
+curl http://localhost:8084/api/infrastructure/status
 ```
 
-## Operator Commands
+### 7. Stop
+
+```powershell
+.\Stop-AllServices.ps1
+```
+
+## Development
 
 ### Build and Test
 
 ```bash
-mvn clean package -DskipTests
-mvn test
+npm run build    # build all workspaces
+npm run test     # run all tests
+npm run lint     # type-check all workspaces
+```
+
+### Dev Mode (Watch)
+
+```bash
+npm run dev:executor    # hot-reload executor-service
+npm run dev:strategy    # hot-reload strategy-service
+npm run dev:analytics   # hot-reload analytics-service
+npm run dev:ingestor    # hot-reload ingestor-service
+npm run dev:infra       # hot-reload infrastructure-orchestrator-service
 ```
 
 ### Tail Logs
 
-```bash
-tail -f logs/executor-service.log
-tail -f logs/strategy-service.log
-tail -f logs/analytics-service.log
-tail -f logs/ingestor-service.log
-tail -f logs/infrastructure-orchestrator-service.log
-```
-
-### Manual Startup (Alternative)
-
-```bash
-mvn clean package -DskipTests
-
-java -jar infrastructure-orchestrator-service/target/infrastructure-orchestrator-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=develop
-java -jar executor-service/target/executor-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=develop
-java -jar strategy-service/target/strategy-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=develop
-java -jar ingestor-service/target/ingestor-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=develop
-java -jar analytics-service/target/analytics-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=develop
+```powershell
+Get-Content -Wait logs\executor-service.log
+Get-Content -Wait logs\strategy-service.log
+Get-Content -Wait logs\analytics-service.log
+Get-Content -Wait logs\ingestor-service.log
+Get-Content -Wait logs\infrastructure-orchestrator-service.log
 ```
 
 ## Services and Ports
@@ -112,7 +128,7 @@ java -jar analytics-service/target/analytics-service-0.0.1-SNAPSHOT.jar --spring
 | executor-service | 8080 | order execution, paper sim, settlement endpoints | `/api/polymarket/health` |
 | strategy-service | 8081 | strategy runtime and status | `/api/strategy/status` |
 | analytics-service | 8082 | analytics APIs on ClickHouse data | `/api/analytics/status` |
-| ingestor-service | 8083 | market/user-trade ingestion pipelines | `/actuator/health` |
+| ingestor-service | 8083 | market/user-trade ingestion pipelines | `/api/ingestor/status` |
 | infrastructure-orchestrator-service | 8084 | lifecycle of analytics + monitoring stacks | `/api/infrastructure/status` |
 | ClickHouse HTTP | 8123 | analytics SQL access | `SELECT 1` |
 | Redpanda Kafka | 9092 | event streaming | Kafka bootstrap |
@@ -130,7 +146,7 @@ Most relevant:
 - `KAFKA_BOOTSTRAP_SERVERS`, `ANALYTICS_DB_URL`, `CLICKHOUSE_*` for data pipeline
 - `GRAFANA_ADMIN_PASSWORD`, `SLACK_WEBHOOK_URL` for ops/alerts
 
-Default mode in develop profile is paper trading (`hft.mode: PAPER`).
+Default mode is paper trading (`HFT_MODE=PAPER`).
 
 ## Included Strategy
 
@@ -152,17 +168,31 @@ Start with `research/README.md`.
 
 ```text
 polybot/
-├── polybot-core/
-├── executor-service/
-├── strategy-service/
-├── ingestor-service/
+├── packages/
+│   └── polybot-core/          # shared library (@polybot/core)
+├── apps/
+│   ├── executor-service/      # NestJS — order execution (port 8080)
+│   ├── strategy-service/      # NestJS — strategy runtime (port 8081)
+│   ├── analytics-service/     # NestJS — analytics APIs (port 8082)
+│   ├── ingestor-service/      # NestJS — data ingestion (port 8083)
+│   └── infrastructure-orchestrator-service/  # NestJS — infra lifecycle (port 8084)
+├── legacy/                    # archived Java/Spring Boot implementation
 ├── analytics-service/
-├── infrastructure-orchestrator-service/
-├── research/
-├── monitoring/
-├── start-all-services.sh
-└── stop-all-services.sh
+│   └── clickhouse/            # ClickHouse DDL init scripts
+├── monitoring/                # Prometheus, Grafana, Alertmanager configs
+├── research/                  # Python research toolkit
+├── scripts/                   # operational scripts
+├── docker-compose.analytics.yaml
+├── docker-compose.monitoring.yaml
+├── Start-AllServices.ps1
+├── Stop-AllServices.ps1
+├── package.json               # npm workspace root
+└── tsconfig.base.json         # shared TypeScript config
 ```
+
+## Legacy Java Implementation
+
+The original Java 21/Spring Boot implementation is archived under `legacy/`. It is preserved for reference and historical context. See `legacy/pom.xml` for the Maven module structure.
 
 ## Contributing
 

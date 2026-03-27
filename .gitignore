@@ -113,6 +113,11 @@ logs/
 # Docker
 docker-compose.override.yml
 
+# Node / TypeScript
+node_modules/
+*.tsbuildinfo
+.eslintcache
+
 # Local testing
 test-output/
 coverage/

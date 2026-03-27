@@ -1,0 +1,29 @@
+{
+  "name": "polybot",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Polymarket HFT trading system — TypeScript/NestJS monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "start:executor": "npm run start --workspace=apps/executor-service",
+    "start:strategy": "npm run start --workspace=apps/strategy-service",
+    "start:analytics": "npm run start --workspace=apps/analytics-service",
+    "start:ingestor": "npm run start --workspace=apps/ingestor-service",
+    "start:infra": "npm run start --workspace=apps/infrastructure-orchestrator-service",
+    "dev:executor": "npm run start:dev --workspace=apps/executor-service",
+    "dev:strategy": "npm run start:dev --workspace=apps/strategy-service",
+    "dev:analytics": "npm run start:dev --workspace=apps/analytics-service",
+    "dev:ingestor": "npm run start:dev --workspace=apps/ingestor-service",
+    "dev:infra": "npm run start:dev --workspace=apps/infrastructure-orchestrator-service"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
