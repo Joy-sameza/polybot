@@ -1,145 +1,182 @@
 # Contributing to Polybot
 
-Thank you for your interest in contributing to Polybot! This document provides guidelines and information for contributors.
+Thanks for your interest in improving Polybot.
+
+This repository is now a TypeScript/npm workspace monorepo built around NestJS services and a shared `@polybot/core` package. The original Java/Spring Boot implementation remains available under `legacy/` for reference, but new work should target the TypeScript codebase unless a change explicitly involves legacy behavior.
 
 ## Ways to Contribute
 
 ### Report Bugs
-- Use GitHub Issues to report bugs
-- Include steps to reproduce, expected vs actual behavior
-- Include relevant logs and configuration (sanitized of secrets)
+- Open a GitHub Issue with clear reproduction steps.
+- Include expected vs actual behavior.
+- Attach sanitized logs, config snippets, or screenshots when useful.
 
 ### Suggest Features
-- Open a GitHub Issue with the `enhancement` label
-- Describe the use case and proposed solution
-- Discuss trade-offs and alternatives considered
+- Open a GitHub Issue with the `enhancement` label.
+- Describe the use case, constraints, and trade-offs.
+- Call out any service boundaries or external dependencies that may be affected.
 
 ### Submit Code
-- Fork the repository
-- Create a feature branch
-- Submit a Pull Request
+- Fork the repository.
+- Create a focused feature branch.
+- Open a Pull Request with validation steps and a concise rationale.
 
 ## Development Setup
 
 ### Prerequisites
-- Java 21+ (we use records, pattern matching, etc.)
-- Maven 3.8+
-- Docker & Docker Compose
-- Python 3.11+ (for research tools)
+- Node.js 20+ and npm 9+
+- Docker Engine/Desktop with Compose support
+- Python 3.11+ for research scripts in `research/`
+- PowerShell 7+ is recommended on Windows for the repo's operational scripts
 
-### Building
+### Install Dependencies
 
 ```bash
-# Build all modules
-mvn clean package
-
-# Run tests
-mvn test
-
-# Skip tests for faster builds
-mvn clean package -DskipTests
+npm install
 ```
 
-### Running Locally
+### Build, Lint, and Test
 
 ```bash
-# Start infrastructure
-docker-compose -f docker-compose.analytics.yaml up -d
+npm run lint
+npm run build
+npm test
+```
 
-# Run services in develop profile (paper trading)
-cd executor-service && mvn spring-boot:run -Dspring-boot.run.profiles=develop
+These commands run across all npm workspaces.
+
+### Run Locally
+
+Start supporting infrastructure when you need analytics or monitoring services:
+
+```bash
+docker compose -f docker-compose.analytics.yaml up -d
+docker compose -f docker-compose.monitoring.yaml up -d
+```
+
+Start all app services with PowerShell:
+
+```powershell
+.\Start-AllServices.ps1
+```
+
+Or run a single service in watch mode:
+
+```bash
+npm run dev:executor
+npm run dev:strategy
+npm run dev:analytics
+npm run dev:ingestor
+npm run dev:infra
+```
+
+Stop the full stack with:
+
+```powershell
+.\Stop-AllServices.ps1
+```
+
+## Repository Layout
+
+```text
+apps/
+  executor-service/                     NestJS API for execution and Polymarket endpoints
+  strategy-service/                     NestJS strategy runtime
+  analytics-service/                    NestJS analytics API
+  ingestor-service/                     NestJS ingestion API
+  infrastructure-orchestrator-service/  NestJS infrastructure control API
+packages/
+  polybot-core/                         Shared domain types, crypto, clients, and helpers
+analytics-service/
+  clickhouse/                           ClickHouse init scripts and config
+legacy/                                 Archived Java/Spring Boot implementation
+monitoring/                             Grafana, Prometheus, Alertmanager config
+research/                               Python research and analysis tooling
+scripts/                                Operational scripts
 ```
 
 ## Code Style
 
-### Java
-- Follow standard Java conventions
-- Use meaningful variable and method names
-- Keep methods focused and small
-- Prefer immutable objects (records) where possible
-- Use `@Slf4j` for logging
+### TypeScript and NestJS
+- Keep shared protocol, crypto, and Polymarket logic in `packages/polybot-core`.
+- Keep service-specific HTTP behavior and orchestration inside the relevant `apps/*` project.
+- Prefer small, typed functions and explicit interfaces over loose objects.
+- Preserve existing endpoint contracts unless the change explicitly updates the public API.
+- Use environment-driven configuration; do not hardcode secrets, hosts, or user-specific values.
 
-### Python
-- Follow PEP 8
-- Use type hints where practical
-- Document functions with docstrings
+### Python Research Tooling
+- Follow PEP 8.
+- Use type hints when practical.
+- Document non-obvious inputs and outputs.
 
-### Commits
-- Write clear, descriptive commit messages
-- Use present tense ("Add feature" not "Added feature")
-- Reference issues when applicable
+### PowerShell Scripts
+- Use `param()` blocks for script inputs.
+- Validate user input and exit with explicit error codes.
+- Prefer clear logging over silent failures.
 
 ## Architecture Guidelines
 
-### Adding a New Strategy
+### Shared Code
+- If logic is reused across services, prefer adding it to `packages/polybot-core`.
+- Keep signing logic, market parsing, and client helpers covered by unit tests.
+- Reuse existing types and helpers before introducing new abstractions.
 
-1. Create a new class in `strategy-service/src/main/java/.../strategy/`
-2. Implement the strategy loop (see `GabagoolDirectionalEngine` as reference)
-3. Add configuration properties
-4. Register the strategy bean
-5. Add tests
-6. Document in `docs/`
+### Service Changes
+- `executor-service` owns execution-facing APIs and Polymarket order flows.
+- `strategy-service` owns strategy lifecycle and runtime state.
+- `analytics-service` owns analytics endpoints backed by ClickHouse-oriented models.
+- `ingestor-service` owns ingestion entry points and pipeline coordination.
+- `infrastructure-orchestrator-service` owns operational lifecycle endpoints.
 
-### Adding New Market Types
+When adding a new endpoint, preserve response shapes and status semantics across the stack.
 
-1. Update market discovery in `GabagoolMarketDiscovery`
-2. Add slug patterns and timing rules
-3. Update sizing schedules if applicable
-4. Test with paper trading first
+### Analytics and Data
+- Keep ClickHouse DDL/config changes under `analytics-service/clickhouse/`.
+- Document new tables, views, or ingestion assumptions in the PR description.
+- If a change affects analytics correctness, include example queries or validation notes.
 
-### Research Tools
-
-1. Add Python scripts in `research/`
-2. Include clear docstrings and usage examples
-3. Use shared utilities from existing scripts
-4. Update `requirements.txt` if adding dependencies
+### Research Workflows
+- Add new research utilities under `research/`.
+- Reuse existing data access patterns where possible.
+- Document any new Python dependencies or external data expectations.
 
 ## Pull Request Process
 
-1. **Branch Naming**: Use descriptive names like `feature/new-strategy` or `fix/order-timeout`
+1. Use a descriptive branch name such as `feature/new-ingestion-metric` or `fix/order-signing`.
+2. Summarize what changed, why it changed, and how you validated it.
+3. Run the relevant verification commands before opening the PR:
 
-2. **PR Description**: Include:
-   - What changes were made
-   - Why the changes were necessary
-   - How to test the changes
-   - Any breaking changes
+```bash
+npm run lint
+npm run build
+npm test
+```
 
-3. **Testing**:
-   - Run `mvn test` and ensure all tests pass
-   - Test manually with paper trading
-   - For strategies, include backtesting results if applicable
-
-4. **Review**: PRs require at least one approving review
-
-5. **Merge**: Squash and merge to keep history clean
+4. If your change touches trading behavior, analytics logic, or research outputs, include focused manual validation notes.
+5. Keep PRs scoped; prefer follow-up PRs over bundling unrelated work.
 
 ## Security
 
 ### Never Commit
-- Private keys or wallet credentials
-- API keys or secrets
-- Real trading data with PII
-- Hardcoded user-specific information
+- Private keys, wallet credentials, or seed phrases
+- API keys, API secrets, or passphrases
+- Real trading data containing PII
+- Hardcoded machine-specific or user-specific settings
 
 ### Best Practices
-- Use environment variables for all secrets
-- Add sensitive patterns to `.gitignore`
-- Review diffs before committing
+- Use environment variables for secrets and operational credentials.
+- Review diffs carefully before pushing.
+- Sanitize logs and screenshots before sharing them publicly.
 
-## Testing Strategy Changes
+## Legacy Java Code
 
-Before submitting strategy changes:
-
-1. **Backtest**: Run against historical data
-2. **Paper Trade**: Test with simulated execution
-3. **Compare**: Use research tools to compare against targets
-4. **Document**: Include performance metrics in PR
+The archived Java implementation lives in `legacy/`. You may reference it when porting behavior or checking historical intent, but avoid adding new primary features there unless the task explicitly calls for legacy maintenance.
 
 ## Questions?
 
-- Open a GitHub Discussion for general questions
-- Check existing Issues for similar questions
-- Review the documentation in `docs/`
+- Open a GitHub Discussion for general questions.
+- Check existing Issues for related work.
+- Start with `README.md` and the docs under `docs/`.
 
 ## License
 
